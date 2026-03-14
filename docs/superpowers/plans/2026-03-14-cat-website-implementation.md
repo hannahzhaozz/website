@@ -527,14 +527,13 @@ git commit -m "feat: add head partial with fonts and assets"
 - [ ] **Step 1: 创建导航栏组件**
 
 ```html
-{{ $currentPage := .Permalink }}
 <nav class="navbar">
   <button class="menu-toggle" aria-label="Toggle menu">☰</button>
   <ul class="nav-links">
-    <li><a href="/" class="{{ if eq $currentPage "/" }}active{{ end }}">首页</a></li>
-    <li><a href="/about/" class="{{ if eq $currentPage "/about/" }}active{{ end }}">关于我</a></li>
+    <li><a href="/" class="{{ if eq .RelPermalink "/" }}active{{ end }}">首页</a></li>
+    <li><a href="/about/" class="{{ if eq .RelPermalink "/about/" }}active{{ end }}">关于我</a></li>
     {{ range where site.RegularPages "Section" "cats" }}
-      <li><a href="{{ .RelPermalink }}" class="{{ if eq $currentPage .RelPermalink }}active{{ end }}">{{ .Title }}</a></li>
+      <li><a href="{{ .RelPermalink }}" class="{{ if eq .RelPermalink $.RelPermalink }}active{{ end }}">{{ .Title }}</a></li>
     {{ end }}
   </ul>
 </nav>
