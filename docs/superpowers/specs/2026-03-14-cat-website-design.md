@@ -11,6 +11,23 @@
 
 ---
 
+## 实现范围
+
+本项目的实现范围包括：
+
+- ✅ 构建 Hugo 网站结构（layouts、配置、样式）
+- ✅ 创建所有页面模板（首页、关于我、猫咪详情页）
+- ✅ 创建占位内容（用户可后续替换为真实内容）
+- ✅ 实现响应式设计和导航功能
+- ✅ 处理图片加载错误
+
+**不包含（用户后续自行添加）：**
+- 真实的猫咪照片（使用占位图片）
+- 具体的猫咪信息（用户根据实际猫咪修改）
+- GitHub Pages 部署配置（文档说明如何操作，但不在实现范围内）
+
+---
+
 ## 技术方案
 
 **选择：** Hugo + GitHub Pages
@@ -25,6 +42,23 @@
 - 性能优秀，加载快速
 - 便于扩展功能
 - 版本控制友好
+
+---
+
+## Hugo 配置
+
+创建 `hugo.toml` 配置文件：
+
+```toml
+baseURL = "/"
+languageCode = "zh-CN"
+title = "我的小猫咪世界"
+theme = ""  # 使用自定义主题
+
+[params]
+  author = "Hannah"
+  description = "欢迎来到我的小猫咪世界"
+```
 
 ---
 
@@ -46,16 +80,36 @@
 
 **职责：** 渲染顶部固定导航栏，处理页面高亮和移动端菜单
 
-**输入：** 当前页面路径
-**输出：** 导航 HTML 结构
+**输入：**
+- Hugo 内置变量 `.RelPermalink` - 当前页面相对路径
+- 遍历所有猫咪页面获取链接列表：`{{ range site.RegularPages }}`
+
+**输出：** 导航 HTML 结构，包含：
+- 固定顶部导航栏
+- 当前页面的高亮样式（通过 `.IsMenuCurrent` 判断）
+- 移动端汉堡菜单（通过 CSS 媒体查询控制显示/隐藏）
 
 **依赖：** 样式系统（获取颜色、字体）
+
+**接口实现示例：**
+```go-html-template
+<nav class="navbar">
+  {{ range site.RegularPages }}
+    <a href="{{ .RelPermalink }}" class="{{ if .IsMenuCurrent "main" . }}active{{ end }}">
+      {{ .Title }}
+    </a>
+  {{ end }}
+</nav>
+```
 
 ### 单元 3：首页模板 (Home Page Template)
 
 **职责：** 渲染欢迎语和猫咪卡片列表
 
-**输入：** 猫咪内容列表（通过 Hugo `range` 获取）
+**输入：**
+- 首页 front matter 数据：`{{ .Title }}`, `{{ .Params.welcome_message }}`
+- 所有猫咪页面列表：`{{ range where site.RegularPages "Section" "cats" }}`
+
 **输出：** 首页 HTML
 
 **依赖：** 样式系统、导航组件
@@ -65,6 +119,14 @@
 **职责：** 渲染单个猫咪的完整信息页面
 
 **输入：** 单只猫咪的 front matter 数据
+- `{{ .Title }}` - 名字
+- `{{ .Params.cover_image }}` - 封面图
+- `{{ .Params.personality }}` - 性格
+- `{{ .Params.gender }}` - 性别
+- `{{ .Params.age }}` - 年龄
+- `{{ .Params.growth_records }}` - 生长记录数组
+- `{{ .Params.additional_images }}` - 额外图片数组
+
 **输出：** 猫咪详情页 HTML
 
 **依赖：** 样式系统、导航组件
@@ -73,7 +135,10 @@
 
 **职责：** 渲染简单的自我介绍页面
 
-**输入：** about.md 内容
+**输入：**
+- about.md 的 front matter：`{{ .Title }}`
+- about.md 的正文内容：`{{ .Content }}`
+
 **输出：** 关于我页面 HTML
 
 **依赖：** 样式系统、导航组件
@@ -82,7 +147,8 @@
 
 **职责：** 提供 HTML 结构框架，包含 `<head>`、`<body>`、导航栏占位符
 
-**输入：** 页面内容（通过 `block` 机制）
+**输入：** 页面内容（通过 `{{ block "main" . }}{{ end }}` 机制）
+
 **输出：** 完整 HTML 文档
 
 **依赖：** 样式系统、导航组件
@@ -104,47 +170,84 @@
 
 ## 数据结构 (Front Matter Schema)
 
-### 首页 (_index.md)
+> **注意：** 以下为占位内容示例，用户后续根据实际情况修改
+
+### 首页 (content/_index.md)
 
 ```yaml
+---
 title: "欢迎来到我的小猫咪世界"
-welcome_message: "这里是四个毛孩子的家"
+welcome_message: "这里是四个毛孩子的家，每一只都是我的心头好"
+---
+
+欢迎来到我的网站！在这里，你可以认识我家四只可爱的小猫。
 ```
 
-### 关于我 (about.md)
+### 关于我 (content/about.md)
 
 ```yaml
+---
 title: "关于我"
 ---
-[自我介绍内容]
+
+你好！我是一个初中生，喜欢画画、听音乐，当然还有——撸猫！
+
+这四只小猫是我们家的一员，它们给我带来了很多快乐。
+希望你能喜欢我的网站！
 ```
 
-### 猫咪页面 (cats/cat1.md)
+### 猫咪页面 (content/cats/cat1/index.md)
 
 ```yaml
-title: "毛毛"  # 猫咪名字
+---
+title: "毛毛"
 cover_image: "/images/cats/cat1/cover.jpg"
-personality: "活泼好动，喜欢追逐激光笔"
+personality: "活泼好动，喜欢追逐激光笔，是个小调皮鬼"
 gender: "公"
 age: "2岁"
 birthday: "2022-03-15"
 growth_records:
   - date: "2022-03-15"
-    event: "来到我们家"
+    event: "来到我们家，小小的，好可爱！"
     image: "/images/cats/cat1/arrival.jpg"
   - date: "2022-06-01"
-    event: "第一次打疫苗"
+    event: "第一次打疫苗，很勇敢哦"
     image: "/images/cats/cat1/vaccine.jpg"
   - date: "2023-01-20"
-    event: "一岁生日啦！"
+    event: "一岁生日啦！给它准备了小鱼干蛋糕"
     image: "/images/cats/cat1/birthday.jpg"
 additional_images:
   - "/images/cats/cat1/photo1.jpg"
   - "/images/cats/cat1/photo2.jpg"
-  - "/images/cats/cat1/photo3.jpg"
 ---
-[可选的额外描述文字]
+
+毛毛是个特别活泼的小家伙，每天都能看到它在客厅里跑来跑去。
 ```
+
+### 猫咪页面 2-4 (content/cats/cat2/index.md, cat3/index.md, cat4/index.md)
+
+使用相同的结构，替换为对应的猫咪信息。初始创建时可复制 cat1 的内容作为占位。
+
+---
+
+## 占位图片方案
+
+由于用户需要自行提供真实照片，实现时将使用以下占位方案：
+
+1. **纯色占位图**：使用 SVG 生成带"猫咪照片"文字的占位图
+2. **占位图片服务**：使用 `https://placehold.co/400x300/ffb6c1/333?text=猫+照片` 生成占位图
+
+实现模板中图片加载逻辑：
+```go-html-template
+{{ $img := .Resources.GetMatch "cover.jpg" }}
+{{ if $img }}
+  <img src="{{ $img.RelPermalink }}" alt="{{ .Title }}">
+{{ else }}
+  <img src="https://placehold.co/400x300/ffb6c1/333?text=猫+照片" alt="{{ .Title }}">
+{{ end }}
+```
+
+用户后续将真实图片放入对应目录后，Hugo 会自动使用真实图片。
 
 ---
 
@@ -158,17 +261,17 @@ hannah-website/
 │   ├── _index.md                    # 首页
 │   ├── about.md                     # 关于我
 │   └── cats/
-│       ├── _index.md                # 猫咪列表页（可选）
+│       ├── _index.md                # 猫咪列表页（可选，暂不创建）
 │       ├── cat1/
-│       │   └── index.md             # 猫咪 1 内容
+│       │   ├── index.md             # 猫咪 1 内容
+│       │   ├── cover.jpg            # 猫咪 1 封面图（用户后续添加）
+│       │   └── photos/              # 猫咪 1 其他照片（用户后续添加）
 │       ├── cat2/
 │       │   └── index.md             # 猫咪 2 内容
 │       ├── cat3/
 │       │   └── index.md             # 猫咪 3 内容
 │       └── cat4/
 │           └── index.md             # 猫咪 4 内容
-├── static/
-│   └── images/                      # 全局图片（如 logo）
 ├── layouts/
 │   ├── _default/
 │   │   └── base.html                # 基础布局
@@ -186,10 +289,9 @@ hannah-website/
 ```
 
 **图片引用方式：**
-- 封面图：通过 front matter 中的 `cover_image` 字段
-- 生长记录图片：通过 front matter 中的 `growth_records[].image` 字段
-- 额外图片：通过 front matter 中的 `additional_images` 字段
-- 使用 Hugo 内置的 `resources.Get` 或直接引用相对路径
+- 封面图：在 cat1/ 目录下命名为 cover.jpg，模板通过 `{{ .Resources.GetMatch "cover.*" }}` 获取
+- 生长记录图片：使用占位图片服务，用户后续可在页面包内添加真实图片
+- 额外图片：使用占位图片服务，用户后续可在页面包的 photos/ 目录添加
 
 ---
 
@@ -203,8 +305,8 @@ hannah-website/
 
 ### 移动端（宽度 ≤ 768px）
 - 固定在页面顶部
-- 显示"菜单"图标
-- 点击图标展开/收起导航链接列表
+- 显示"菜单"图标（使用 ☰ 符号）
+- 点击图标展开/收起导航链接列表（通过简单的 JavaScript toggle class）
 - 当前页面链接高亮显示
 - 点击任意链接后自动收起菜单
 
@@ -212,6 +314,18 @@ hannah-website/
 - 导航栏背景色：使用主色调（浅粉 `#ffb6c1`）
 - 链接悬停效果：文字颜色加深 + 轻微下划线
 - 平滑滚动：点击锚点链接时平滑滚动到目标位置
+
+### 当前页面高亮实现
+```go-html-template
+{{ $currentPage := . }}
+<nav>
+  {{ range site.RegularPages }}
+    <a href="{{ .RelPermalink }}" class="{{ if eq $currentPage.RelPermalink .RelPermalink }}active{{ end }}">
+      {{ .Title }}
+    </a>
+  {{ end }}
+</nav>
+```
 
 ---
 
@@ -235,7 +349,7 @@ hannah-website/
   --color-primary: #87ceeb;
   --color-secondary: #ffb6c1;
   --color-text: #333333;
-  --font-family: 'Quicksand', sans-serif;
+  --font-family: 'Quicksand', 'Nunito', sans-serif;
   --border-radius: 12px;
   --shadow: 0 4px 12px rgba(0,0,0,0.1);
   --transition: all 0.3s ease;
@@ -274,16 +388,16 @@ hannah-website/
 ## 错误处理
 
 ### 缺失图片
-- **行为**：显示占位图片（带"图片加载中"文字）
-- **技术**：使用 `{{ with .Resources.GetMatch` 检查图片存在性
+- **行为**：显示占位图片（带"猫+照片"文字）
+- **技术**：使用 `{{ with .Resources.GetMatch }}` 检查图片存在性，不存在时使用 placehold.co
 
 ### 空生长记录
 - **行为**：显示"暂时还没有成长记录哦~"
-- **技术**：检查 `growth_records` 数组长度
+- **技术**：检查 `growth_records` 数组长度，为 0 时显示提示
 
 ### 空额外图片
 - **行为**：不显示额外图片区域
-- **技术**：检查 `additional_images` 数组长度
+- **技术**：检查 `additional_images` 数组长度，为 0 时不渲染该区域
 
 ### 缺失字段
 - **行为**：显示默认值或跳过该部分
@@ -302,6 +416,34 @@ hannah-website/
 3. **猫咪页面**：点击卡片进入猫咪页面，展示详细信息
 4. **生长记录**：按时间线展示猫咪的成长故事，有照片有文字
 5. **返回**：每个页面都有"返回首页"按钮
+
+---
+
+## 项目完成标准
+
+项目完成时应满足以下标准：
+
+1. ✅ 可以通过 `hugo serve` 本地预览网站
+2. ✅ 所有页面（首页、关于我、4个猫咪页）都能正常访问
+3. ✅ 导航栏在桌面端和移动端都能正常工作
+4. ✅ 页面样式符合设计的视觉风格
+5. ✅ 使用占位图片，且占位图片显示正常
+6. ✅ 响应式设计在不同屏幕尺寸下正常显示
+
+---
+
+## 后续步骤（用户操作）
+
+实现完成后，用户需要：
+
+1. **安装 Hugo**：按照 [Hugo 官方文档](https://gohugo.io/installation/) 安装
+2. **添加真实图片**：将猫咪照片放入对应的 content/cats/catX/ 目录
+3. **修改猫咪信息**：根据真实猫咪修改 cat1/cat2/cat3/cat4/index.md 中的内容
+4. **修改个人信息**：修改 about.md 中的自我介绍
+5. **部署到 GitHub Pages**：
+   - 创建 GitHub 仓库
+   - 推送代码
+   - 在仓库设置中启用 GitHub Pages
 
 ---
 
